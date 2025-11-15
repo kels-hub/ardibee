@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h2>Shipping Calculator</h2>
+        </div>
+        <div class="nav-user">
+            <span id="userWelcome">Welcome, User!</span>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Fixed Top Section: Exchange Rates -->
+        <div class="top-section">
+            <div class="rates-card">
+                <h3>Exchange Rates</h3>
+                <div class="rates-grid">
+                    <div class="rate-item">
+                        <label>CBM Rate ($)</label>
+                        <input type="number" id="cbmRate" value="247" step="0.01">
+                    </div>
+                    <div class="rate-item">
+                        <label>Dollar Rate (₵)</label>
+                        <input type="number" id="dollarRate" value="15" step="0.01">
+                    </div>
+                    <div class="rate-item">
+                        <label>Yuan Rate (₵)</label>
+                        <input type="number" id="yuanRate" value="0.575" step="0.0001">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Middle Section: Products -->
+        <div class="middle-section">
+            <div class="products-section">
+                <div class="section-header">
+                    <h3>Products</h3>
+                    <button id="addProductBtn" class="add-btn">+ Add Product</button>
+                </div>
+
+                <div class="products-table-container">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Length (cm)</th>
+                                <th>Width (cm)</th>
+                                <th>Height (cm)</th>
+                                <th>CBM (m³)</th>
+                                <th>Product Cost (¥)</th>
+                                <th>Local Shipping (¥)</th>
+                                <th>Total Product (¥)</th>
+                                <th>Product Cost (₵)</th>
+                                <th>Shipping Cost (₵)</th>
+                                <th>Total Cost (₵)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- Products will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fixed Bottom Section: Grand Totals -->
+        <div class="bottom-section">
+            <div class="totals-card">
+                <h3>Grand Totals</h3>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <label>Total CBM</label>
+                        <span id="totalCBM">0.000</span>
+                    </div>
+                    <div class="total-item">
+                        <label>Total Product Cost (₵)</label>
+                        <span id="totalProductCost">0.00</span>
+                    </div>
+                    <div class="total-item">
+                        <label>Total Shipping Cost (₵)</label>
+                        <span id="totalShippingCost">0.00</span>
+                    </div>
+                    <div class="total-item grand-total">
+                        <label>Grand Total (₵)</label>
+                        <span id="grandTotal">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

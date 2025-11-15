@@ -1,0 +1,302 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f6fa;
+    color: #333;
+    height: 100vh;
+    overflow: hidden; /* Prevent body scroll */
+}
+
+.navbar {
+    background: white;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-brand h2 {
+    color: #2c3e50;
+}
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logout-btn {
+    padding: 8px 16px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    height: calc(100vh - 80px); /* Full height minus navbar */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Fixed top section for rates */
+.top-section {
+    flex-shrink: 0; /* Don't allow this to shrink */
+}
+
+.rates-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.rates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.rate-item label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.rate-item input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 5px;
+}
+
+/* Scrollable middle section for products */
+.middle-section {
+    flex: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Important for flexbox scrolling */
+}
+
+.products-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Important for flexbox scrolling */
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-shrink: 0; /* Don't allow header to shrink */
+}
+
+.add-btn {
+    padding: 10px 20px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.add-btn:hover {
+    background: #219a52;
+}
+
+.products-table-container {
+    flex: 1;
+    overflow: auto; /* Enable scrolling */
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px; /* Ensure table doesn't get too narrow */
+}
+
+.products-table th,
+.products-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #e1e5e9;
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+.products-table th {
+    background: #34495e;
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.products-table tr:hover {
+    background: #f8f9fa;
+}
+
+.input-cell {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.calc-cell {
+    background: #e8f5e8;
+    font-weight: 600;
+    min-width: 100px;
+}
+
+.delete-btn {
+    padding: 5px 10px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+/* Fixed bottom section for totals */
+.bottom-section {
+    flex-shrink: 0; /* Don't allow this to shrink */
+}
+
+.totals-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.totals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.total-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.total-item.grand-total {
+    background: #2ecc71;
+    color: white;
+}
+
+.total-item.grand-total span {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+/* Custom scrollbar for products table */
+.products-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.products-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.products-table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.products-table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        height: calc(100vh - 70px);
+    }
+    
+    .navbar {
+        padding: 0.8rem 1rem;
+    }
+    
+    .products-table {
+        font-size: 12px;
+        min-width: 1000px;
+    }
+    
+    .products-table th,
+    .products-table td {
+        padding: 8px 4px;
+    }
+    
+    .input-cell {
+        width: 60px;
+        font-size: 12px;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .rates-grid,
+    .totals-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .rates-card,
+    .products-section,
+    .totals-card {
+        padding: 1rem;
+    }
+    
+    .nav-brand h2 {
+        font-size: 1.2rem;
+    }
+}

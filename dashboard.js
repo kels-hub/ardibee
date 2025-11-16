@@ -1,7 +1,7 @@
 // GitHub Configuration
 const GITHUB_USERNAME = 'kels-hub'; // Replace with your GitHub username
 const REPO_NAME = 'ardibee'; // Replace with your repository name
-const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'; // You'll create this once
+const GITHUB_TOKEN = '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'; // You'll create this once
 const DATA_FILE_PATH = 'data/products.json';
 
 const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${DATA_FILE_PATH}`;
@@ -349,3 +349,4 @@ function renderProducts() {
         tbody.appendChild(row);
     });
 }
+

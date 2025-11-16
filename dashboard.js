@@ -1,219 +1,213 @@
+// GitHub Configuration
+const GITHUB_USERNAME = 'kels-hub'; // Replace with your GitHub username
+const REPO_NAME = 'ardibee'; // Replace with your repository name
+const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'; // You'll create this once
+const DATA_FILE_PATH = 'data/products.json';
+
+const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${DATA_FILE_PATH}`;
+const API_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${DATA_FILE_PATH}`;
+
 // Check authentication
 if (localStorage.getItem('isLoggedIn') !== 'true') {
     window.location.href = 'index.html';
 }
 
+// Global data
 let products = [];
+let rates = {
+    cbmRate: 247,
+    dollarRate: 15,
+    yuanRate: 0.575
+};
 
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize
+document.addEventListener('DOMContentLoaded', async function() {
     const currentUser = localStorage.getItem('currentUser');
     document.getElementById('userWelcome').textContent = `Welcome, ${currentUser}!`;
     
-    // Load data from URL or local storage
-    loadFromURL();
+    // Load data from GitHub
+    await loadDataFromGitHub();
     
-    // Event listeners
+    // Setup event listeners
     document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('addProductBtn').addEventListener('click', addProduct);
-    document.getElementById('exportBtn').addEventListener('click', exportData);
-    document.getElementById('importInput').addEventListener('change', importData);
-    document.getElementById('shareBtn').addEventListener('click', openShareModal);
     
     // Rate change listeners
-    document.getElementById('cbmRate').addEventListener('input', updateAllCalculations);
-    document.getElementById('dollarRate').addEventListener('input', updateAllCalculations);
-    document.getElementById('yuanRate').addEventListener('input', updateAllCalculations);
+    document.getElementById('cbmRate').addEventListener('input', function() {
+        rates.cbmRate = parseFloat(this.value) || 0;
+        updateAllCalculations();
+        saveDataToGitHub();
+    });
+    
+    document.getElementById('dollarRate').addEventListener('input', function() {
+        rates.dollarRate = parseFloat(this.value) || 0;
+        updateAllCalculations();
+        saveDataToGitHub();
+    });
+    
+    document.getElementById('yuanRate').addEventListener('input', function() {
+        rates.yuanRate = parseFloat(this.value) || 0;
+        updateAllCalculations();
+        saveDataToGitHub();
+    });
 });
 
-// URL Data Storage Functions
-function saveToURL() {
-    const data = {
-        products: products,
-        rates: {
-            cbm: document.getElementById('cbmRate').value,
-            dollar: document.getElementById('dollarRate').value,
-            yuan: document.getElementById('yuanRate').value
-        },
-        timestamp: new Date().toISOString()
-    };
-    
-    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(data));
-    const newURL = window.location.origin + window.location.pathname + '?data=' + compressed;
-    window.history.replaceState(null, '', newURL);
-    
-    // Also save to local storage as backup
-    localStorage.setItem('products', JSON.stringify(products));
-    localStorage.setItem('rates', JSON.stringify(data.rates));
-}
-
-function loadFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const dataParam = urlParams.get('data');
-    
-    if (dataParam) {
-        try {
-            const decompressed = LZString.decompressFromEncodedURIComponent(dataParam);
-            const data = JSON.parse(decompressed);
-            
+async function loadDataFromGitHub() {
+    try {
+        console.log('Loading data from GitHub...');
+        const response = await fetch(DATA_URL + '?t=' + Date.now()); // Cache bust
+        
+        if (response.ok) {
+            const data = await response.json();
             products = data.products || [];
-            document.getElementById('cbmRate').value = data.rates?.cbm || 247;
-            document.getElementById('dollarRate').value = data.rates?.dollar || 15;
-            document.getElementById('yuanRate').value = data.rates?.yuan || 0.575;
+            rates = data.rates || rates;
+            
+            // Update UI with loaded rates
+            document.getElementById('cbmRate').value = rates.cbmRate;
+            document.getElementById('dollarRate').value = rates.dollarRate;
+            document.getElementById('yuanRate').value = rates.yuanRate;
             
             renderProducts();
             updateTotals();
-            console.log('Data loaded from URL');
-            return;
-        } catch (error) {
-            console.error('Error loading from URL:', error);
+            showMessage('Data loaded successfully!', 'success');
+        } else {
+            throw new Error('Failed to load data');
         }
+    } catch (error) {
+        console.warn('Could not load from GitHub, using local storage:', error);
+        loadFromLocalStorage();
     }
-    
-    // Fallback to local storage
-    loadFromLocalStorage();
+}
+
+async function saveDataToGitHub() {
+    // If no token, save to local storage only
+    if (!GITHUB_TOKEN || GITHUB_TOKEN === 'YOUR_GITHUB_TOKEN') {
+        saveToLocalStorage();
+        showMessage('Data saved locally (no GitHub token configured)', 'warning');
+        return;
+    }
+
+    try {
+        // First, get the current file to get its SHA
+        const getResponse = await fetch(API_URL, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        let sha = '';
+        if (getResponse.ok) {
+            const fileData = await getResponse.json();
+            sha = fileData.sha;
+        }
+
+        // Prepare the data
+        const data = {
+            products: products,
+            rates: rates,
+            lastUpdated: new Date().toISOString()
+        };
+
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+        
+        const updateResponse = await fetch(API_URL, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                message: `Update shipping data - ${new Date().toLocaleString()}`,
+                content: content,
+                sha: sha || undefined
+            })
+        });
+
+        if (updateResponse.ok) {
+            showMessage('Data saved to cloud! ✅', 'success');
+            saveToLocalStorage(); // Also save locally as backup
+        } else {
+            throw new Error('GitHub API error');
+        }
+    } catch (error) {
+        console.error('Failed to save to GitHub:', error);
+        saveToLocalStorage();
+        showMessage('Saved locally (cloud save failed)', 'warning');
+    }
+}
+
+// Local storage fallback
+function saveToLocalStorage() {
+    const data = {
+        products: products,
+        rates: rates,
+        lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem('shippingData', JSON.stringify(data));
 }
 
 function loadFromLocalStorage() {
-    products = JSON.parse(localStorage.getItem('products')) || [];
-    const savedRates = JSON.parse(localStorage.getItem('rates'));
-    
-    if (savedRates) {
-        document.getElementById('cbmRate').value = savedRates.cbm || 247;
-        document.getElementById('dollarRate').value = savedRates.dollar || 15;
-        document.getElementById('yuanRate').value = savedRates.yuan || 0.575;
+    const saved = localStorage.getItem('shippingData');
+    if (saved) {
+        const data = JSON.parse(saved);
+        products = data.products || [];
+        rates = data.rates || rates;
+        
+        document.getElementById('cbmRate').value = rates.cbmRate;
+        document.getElementById('dollarRate').value = rates.dollarRate;
+        document.getElementById('yuanRate').value = rates.yuanRate;
+        
+        renderProducts();
+        updateTotals();
+        showMessage('Loaded from local storage', 'info');
     }
-    
-    renderProducts();
-    updateTotals();
 }
 
-// Share Modal Functions
-function openShareModal() {
-    saveToURL(); // Ensure URL is up to date
-    const currentURL = window.location.href;
-    
-    document.getElementById('shareUrl').value = currentURL;
-    document.getElementById('shareModal').style.display = 'flex';
-    
-    // Generate QR code
-    generateQRCode(currentURL);
-}
+function showMessage(message, type = 'info') {
+    // Remove existing message
+    const existingMsg = document.getElementById('statusMessage');
+    if (existingMsg) {
+        existingMsg.remove();
+    }
 
-function closeShareModal() {
-    document.getElementById('shareModal').style.display = 'none';
-}
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'statusMessage';
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 1000;
+        transition: opacity 0.3s;
+        ${type === 'success' ? 'background: #27ae60;' : ''}
+        ${type === 'warning' ? 'background: #f39c12;' : ''}
+        ${type === 'error' ? 'background: #e74c3c;' : ''}
+        ${type === 'info' ? 'background: #3498db;' : ''}
+    `;
 
-function copyShareUrl() {
-    const shareUrl = document.getElementById('shareUrl');
-    shareUrl.select();
-    shareUrl.setSelectionRange(0, 99999);
-    document.execCommand('copy');
-    
-    // Show copied feedback
-    const copyBtn = document.querySelector('.copy-btn');
-    const originalText = copyBtn.textContent;
-    copyBtn.textContent = 'Copied!';
-    copyBtn.style.background = '#27ae60';
-    
+    document.body.appendChild(messageDiv);
+
+    // Auto remove after 3 seconds
     setTimeout(() => {
-        copyBtn.textContent = originalText;
-        copyBtn.style.background = '#3498db';
-    }, 2000);
+        messageDiv.style.opacity = '0';
+        setTimeout(() => messageDiv.remove(), 300);
+    }, 3000);
 }
 
-function generateQRCode(text) {
-    const qrcodeContainer = document.getElementById('qrcode');
-    qrcodeContainer.innerHTML = '';
-    
-    // Simple QR code generation using canvas
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const size = 200;
-    canvas.width = size;
-    canvas.height = size;
-    
-    // Simple QR-like pattern (for demo - in production use a proper QR library)
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = 'black';
-    
-    // Create a simple pattern
-    for (let i = 0; i < size; i += 10) {
-        for (let j = 0; j < size; j += 10) {
-            if (Math.random() > 0.5) {
-                ctx.fillRect(i, j, 8, 8);
-            }
-        }
-    }
-    
-    qrcodeContainer.appendChild(canvas);
+// Rest of your existing functions (slightly modified to auto-save)
+function logout() {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isLoggedIn');
+    window.location.href = 'index.html';
 }
 
-function shareViaWhatsApp() {
-    const url = encodeURIComponent(document.getElementById('shareUrl').value);
-    window.open(`https://wa.me/?text=${url}`, '_blank');
-}
-
-function shareViaEmail() {
-    const url = document.getElementById('shareUrl').value;
-    window.open(`mailto:?subject=Shipping Calculator Data&body=Here is my shipping data: ${url}`, '_blank');
-}
-
-function shareViaSMS() {
-    const url = document.getElementById('shareUrl').value;
-    window.open(`sms:?body=Shipping Calculator Data: ${url}`, '_blank');
-}
-
-// File Export/Import
-function exportData() {
-    const data = {
-        products: products,
-        rates: {
-            cbm: document.getElementById('cbmRate').value,
-            dollar: document.getElementById('dollarRate').value,
-            yuan: document.getElementById('yuanRate').value
-        },
-        exportDate: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `shipping-data-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            products = data.products || [];
-            document.getElementById('cbmRate').value = data.rates?.cbm || 247;
-            document.getElementById('dollarRate').value = data.rates?.dollar || 15;
-            document.getElementById('yuanRate').value = data.rates?.yuan || 0.575;
-            
-            renderProducts();
-            updateTotals();
-            saveToURL();
-            
-            alert('Data imported successfully!');
-        } catch (error) {
-            alert('Error importing file. Please check the file format.');
-        }
-    };
-    reader.readAsText(file);
-}
-
-// Product Management
-async function addProduct() {
+function addProduct() {
     const product = {
         id: Date.now(),
         name: '',
@@ -225,41 +219,37 @@ async function addProduct() {
     };
     
     products.push(product);
-    saveToURL();
     renderProducts();
+    saveDataToGitHub(); // Auto-save
 }
 
-async function deleteProduct(id) {
+function deleteProduct(id) {
     products = products.filter(p => p.id !== id);
-    saveToURL();
     renderProducts();
     updateTotals();
+    saveDataToGitHub(); // Auto-save
 }
 
-async function updateProduct(id, field, value) {
+function updateProduct(id, field, value) {
     const product = products.find(p => p.id === id);
     if (product) {
         product[field] = field === 'name' ? value : parseFloat(value) || 0;
-        saveToURL();
         updateProductCalculations(id);
         updateTotals();
+        saveDataToGitHub(); // Auto-save after short delay
     }
 }
 
-// Calculation Functions
 function calculateCBM(length, width, height) {
     return (length * width * height) / 1000000;
 }
 
 function calculateShippingCost(cbm) {
-    const cbmRate = parseFloat(document.getElementById('cbmRate').value) || 0;
-    const dollarRate = parseFloat(document.getElementById('dollarRate').value) || 0;
-    return cbm * cbmRate * dollarRate;
+    return cbm * rates.cbmRate * rates.dollarRate;
 }
 
 function calculateProductCost(productCostYuan, localShippingYuan) {
-    const yuanRate = parseFloat(document.getElementById('yuanRate').value) || 0;
-    return (productCostYuan + localShippingYuan) * yuanRate;
+    return (productCostYuan + localShippingYuan) * rates.yuanRate;
 }
 
 function updateProductCalculations(id) {
@@ -284,7 +274,6 @@ function updateProductCalculations(id) {
 function updateAllCalculations() {
     products.forEach(product => updateProductCalculations(product.id));
     updateTotals();
-    saveToURL(); // Auto-save when rates change
 }
 
 function updateTotals() {
@@ -360,17 +349,3 @@ function renderProducts() {
         tbody.appendChild(row);
     });
 }
-
-function logout() {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('isLoggedIn');
-    window.location.href = 'index.html';
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('shareModal');
-    if (event.target === modal) {
-        closeShareModal();
-    }
-});

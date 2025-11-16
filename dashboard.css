@@ -9,7 +9,7 @@ body {
     background: #f5f6fa;
     color: #333;
     height: 100vh;
-    overflow: hidden; /* Prevent body scroll */
+    overflow: hidden;
 }
 
 .navbar {
@@ -31,7 +31,22 @@ body {
 .nav-user {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
+}
+
+.nav-btn {
+    padding: 8px 12px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.nav-btn:hover {
+    background: #2980b9;
 }
 
 .logout-btn {
@@ -47,14 +62,13 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem;
-    height: calc(100vh - 80px); /* Full height minus navbar */
+    height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
 }
 
-/* Fixed top section for rates */
 .top-section {
-    flex-shrink: 0; /* Don't allow this to shrink */
+    flex-shrink: 0;
 }
 
 .rates-card {
@@ -86,12 +100,11 @@ body {
     border-radius: 5px;
 }
 
-/* Scrollable middle section for products */
 .middle-section {
-    flex: 1; /* Take remaining space */
+    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Important for flexbox scrolling */
+    min-height: 0;
 }
 
 .products-section {
@@ -103,7 +116,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Important for flexbox scrolling */
+    min-height: 0;
 }
 
 .section-header {
@@ -111,7 +124,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
-    flex-shrink: 0; /* Don't allow header to shrink */
+    flex-shrink: 0;
 }
 
 .add-btn {
@@ -131,7 +144,7 @@ body {
 
 .products-table-container {
     flex: 1;
-    overflow: auto; /* Enable scrolling */
+    overflow: auto;
     border: 1px solid #e1e5e9;
     border-radius: 8px;
 }
@@ -139,7 +152,7 @@ body {
 .products-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1200px; /* Ensure table doesn't get too narrow */
+    min-width: 1200px;
 }
 
 .products-table th,
@@ -147,7 +160,7 @@ body {
     padding: 12px;
     text-align: center;
     border-bottom: 1px solid #e1e5e9;
-    white-space: nowrap; /* Prevent text wrapping */
+    white-space: nowrap;
 }
 
 .products-table th {
@@ -192,9 +205,8 @@ body {
     background: #c0392b;
 }
 
-/* Fixed bottom section for totals */
 .bottom-section {
-    flex-shrink: 0; /* Don't allow this to shrink */
+    flex-shrink: 0;
 }
 
 .totals-card {
@@ -227,7 +239,6 @@ body {
     font-weight: bold;
 }
 
-/* Custom scrollbar for products table */
 .products-table-container::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -247,6 +258,124 @@ body {
     background: #a8a8a8;
 }
 
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #7f8c8d;
+}
+
+.close-btn:hover {
+    color: #34495e;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.url-container {
+    display: flex;
+    gap: 10px;
+    margin: 1rem 0;
+}
+
+.url-container input {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #bdc3c7;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.copy-btn {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.copy-btn:hover {
+    background: #2980b9;
+}
+
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 1.5rem 0;
+}
+
+.share-option-btn {
+    padding: 10px;
+    background: #ecf0f1;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.share-option-btn:hover {
+    background: #bdc3c7;
+}
+
+.qr-section {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #ecf0f1;
+}
+
+.qr-section h4 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+#qrcode {
+    display: inline-block;
+    padding: 10px;
+    background: white;
+    border-radius: 10px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
@@ -256,6 +385,15 @@ body {
     
     .navbar {
         padding: 0.8rem 1rem;
+    }
+    
+    .nav-user {
+        gap: 5px;
+    }
+    
+    .nav-btn {
+        padding: 6px 8px;
+        font-size: 12px;
     }
     
     .products-table {
@@ -281,6 +419,10 @@ body {
     
     .rates-grid,
     .totals-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .share-options {
         grid-template-columns: 1fr;
     }
 }

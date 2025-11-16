@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shipping Calculator - Dashboard</title>
     <link rel="stylesheet" href="dashboard.css">
-    <!-- LZString Compression Library -->
-    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -14,10 +12,6 @@
             <h2>📦 Shipping Calculator</h2>
         </div>
         <div class="nav-user">
-            <button id="exportBtn" class="nav-btn" title="Export Data">💾 Export</button>
-            <input type="file" id="importInput" accept=".json" style="display: none;">
-            <button onclick="document.getElementById('importInput').click()" class="nav-btn" title="Import Data">📁 Import</button>
-            <button id="shareBtn" class="nav-btn" title="Share URL">📤 Share</button>
             <span id="userWelcome">Welcome, User!</span>
             <button id="logoutBtn" class="logout-btn">Logout</button>
         </div>
@@ -100,32 +94,6 @@
                         <label>Grand Total (₵)</label>
                         <span id="grandTotal">0.00</span>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Share Modal (hidden by default) -->
-    <div id="shareModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📱 Share Your Data</h3>
-                <button class="close-btn" onclick="closeShareModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Share this URL to access your data on any device:</p>
-                <div class="url-container">
-                    <input type="text" id="shareUrl" readonly>
-                    <button onclick="copyShareUrl()" class="copy-btn">Copy</button>
-                </div>
-                <div class="share-options">
-                    <button onclick="shareViaWhatsApp()" class="share-option-btn">📱 WhatsApp</button>
-                    <button onclick="shareViaEmail()" class="share-option-btn">📧 Email</button>
-                    <button onclick="shareViaSMS()" class="share-option-btn">💬 SMS</button>
-                </div>
-                <div class="qr-section">
-                    <h4>QR Code - Scan with Phone</h4>
-                    <div id="qrcode"></div>
                 </div>
             </div>
         </div>

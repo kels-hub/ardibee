@@ -1,11 +1,14 @@
-// GitHub Configuration - UPDATE THESE!
-const GITHUB_USERNAME = 'kels-hub'; // Replace with your GitHub username
-const REPO_NAME = 'ardibee'; // Replace with your repository name
-const GITHUB_TOKEN = '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'; // Replace with your GitHub token
-const BRANCH = 'main'; // or 'master' depending on your repo
+// GitHub Configuration - UPDATE THESE WITH YOUR ACTUAL INFO!
+const GITHUB_CONFIG = {
+    username: 'kels-hub',      // Replace with your actual GitHub username
+    repo: 'ardibee',                // Replace with your actual repository name
+    token: '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',            // Replace with your actual token
+    branch: 'main'
+};
 
-const RAW_DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/data/products.json`;
-const API_DATA_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data/products.json`;
+// URLs
+const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_CONFIG.username}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/data/products.json`;
+const API_URL = `https://api.github.com/repos/${GITHUB_CONFIG.username}/${GITHUB_CONFIG.repo}/contents/data/products.json`;
 
 // Check authentication
 if (localStorage.getItem('isLoggedIn') !== 'true') {
@@ -19,16 +22,13 @@ let rates = {
     dollarRate: 15,
     yuanRate: 0.575
 };
-let currentSha = ''; // To track the file SHA
+let currentSha = '';
 
 document.addEventListener('DOMContentLoaded', async function() {
     const currentUser = localStorage.getItem('currentUser');
     document.getElementById('userWelcome').textContent = `Welcome, ${currentUser}!`;
     
-    // Setup event listeners first
     setupEventListeners();
-    
-    // Then load data
     await loadData();
 });
 
@@ -36,11 +36,10 @@ function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('addProductBtn').addEventListener('click', addProduct);
     
-    // Rate change listeners with debouncing
     let saveTimeout;
     const scheduleSave = () => {
         clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => saveData(), 1000);
+        saveTimeout = setTimeout(() => saveData(), 1500);
     };
     
     document.getElementById('cbmRate').addEventListener('input', function() {
@@ -65,105 +64,145 @@ function setupEventListeners() {
 async function loadData() {
     showMessage('Loading data...', 'info');
     
-    // Try GitHub first, then local storage
+    if (!isGitHubConfigured()) {
+        showMessage('GitHub not configured - using local storage', 'warning');
+        loadFromLocalStorage();
+        return;
+    }
+    
     try {
         await loadFromGitHub();
     } catch (error) {
-        console.warn('GitHub load failed, trying local storage:', error);
+        console.error('GitHub load failed:', error);
+        showMessage(`Cloud load failed: ${error.message}`, 'error');
         loadFromLocalStorage();
     }
 }
 
 async function loadFromGitHub() {
-    try {
-        const response = await fetch(RAW_DATA_URL + '?t=' + Date.now());
+    console.log('Loading from GitHub...', RAW_URL);
+    
+    const response = await fetch(RAW_URL + '?t=' + Date.now());
+    
+    if (!response.ok) {
+        throw new Error(`Failed to load: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Loaded data:', data);
+    
+    // Validate and update data
+    if (data && typeof data === 'object') {
+        products = Array.isArray(data.products) ? data.products : [];
+        rates = data.rates && typeof data.rates === 'object' ? { ...rates, ...data.rates } : rates;
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        updateRatesUI();
+        renderProducts();
+        updateTotals();
         
-        const data = await response.json();
-        
-        // Validate data structure
-        if (data && (data.products || data.rates)) {
-            products = data.products || [];
-            rates = data.rates || rates;
-            currentSha = data._sha || ''; // Store SHA if available
-            
-            // Update UI
-            updateRatesUI();
-            renderProducts();
-            updateTotals();
-            
-            showMessage('Data loaded from cloud! ✅', 'success');
-        } else {
-            throw new Error('Invalid data format');
-        }
-    } catch (error) {
-        throw new Error(`GitHub load failed: ${error.message}`);
+        showMessage('Data loaded from cloud! ✅', 'success');
+    } else {
+        throw new Error('Invalid data format from server');
     }
 }
 
 async function saveData() {
     if (!isGitHubConfigured()) {
         saveToLocalStorage();
-        showMessage('Saved locally (GitHub not configured)', 'warning');
         return;
     }
 
     try {
         await saveToGitHub();
     } catch (error) {
-        console.error('GitHub save failed:', error);
+        console.error('Save failed:', error);
         saveToLocalStorage();
-        showMessage('Saved locally (cloud save failed)', 'warning');
+        showMessage(`Cloud save failed: ${error.message}`, 'error');
     }
 }
 
 async function saveToGitHub() {
-    // Prepare the data
+    console.log('Saving to GitHub...');
+    
+    // First, try to get the current file to get its SHA
+    let sha = '';
+    try {
+        const getResponse = await fetch(API_URL, {
+            headers: {
+                'Authorization': `Bearer ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (getResponse.ok) {
+            const fileInfo = await getResponse.json();
+            sha = fileInfo.sha;
+            console.log('Got file SHA:', sha);
+        } else if (getResponse.status !== 404) {
+            // 404 is okay - file doesn't exist yet
+            throw new Error(`Failed to get file info: ${getResponse.status}`);
+        }
+    } catch (error) {
+        console.warn('Could not get file info:', error);
+    }
+
+    // Prepare data
     const data = {
         products: products,
         rates: rates,
-        lastUpdated: new Date().toISOString(),
-        _sha: currentSha // Include current SHA for reference
+        lastUpdated: new Date().toISOString()
     };
 
     // Convert to base64
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-    
-    // Prepare the API payload
+    console.log('Content prepared, length:', content.length);
+
+    // Prepare payload
     const payload = {
         message: `Update shipping data - ${new Date().toLocaleString()}`,
         content: content,
-        branch: BRANCH
+        branch: GITHUB_CONFIG.branch
     };
 
-    // If we have a SHA, include it for update
-    if (currentSha) {
-        payload.sha = currentSha;
+    // Include SHA if we have it (for updates)
+    if (sha) {
+        payload.sha = sha;
     }
 
-    const response = await fetch(API_DATA_URL, {
+    console.log('Sending payload:', { ...payload, content: '[BASE64_CONTENT]' });
+
+    const response = await fetch(API_URL, {
         method: 'PUT',
         headers: {
-            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Authorization': `Bearer ${GITHUB_CONFIG.token}`,
             'Content-Type': 'application/json',
             'Accept': 'application/vnd.github.v3+json'
         },
         body: JSON.stringify(payload)
     });
 
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`);
+        const errorText = await response.text();
+        console.error('GitHub API error response:', errorText);
+        
+        let errorMessage = `GitHub API error: ${response.status}`;
+        try {
+            const errorData = JSON.parse(errorText);
+            errorMessage += ` - ${errorData.message || 'Unknown error'}`;
+        } catch (e) {
+            errorMessage += ` - ${errorText}`;
+        }
+        
+        throw new Error(errorMessage);
     }
 
     const result = await response.json();
-    currentSha = result.content.sha; // Update SHA for next save
+    console.log('Save successful:', result);
     
     showMessage('Data saved to cloud! ✅', 'success');
-    saveToLocalStorage(); // Also save locally as backup
+    saveToLocalStorage(); // Backup to local storage
 }
 
 function saveToLocalStorage() {
@@ -191,8 +230,6 @@ function loadFromLocalStorage() {
             console.error('Local storage load failed:', error);
             showMessage('Starting with empty data', 'info');
         }
-    } else {
-        showMessage('Starting with new data', 'info');
     }
 }
 
@@ -203,16 +240,17 @@ function updateRatesUI() {
 }
 
 function isGitHubConfigured() {
-    return GITHUB_USERNAME && 
-           GITHUB_USERNAME !== 'your-github-username' && 
-           REPO_NAME && 
-           REPO_NAME !== 'your-repo-name' && 
-           GITHUB_TOKEN && 
-           GITHUB_TOKEN !== 'your-token-here';
+    const config = GITHUB_CONFIG;
+    return config.username && 
+           config.username !== 'YOUR_GITHUB_USERNAME' &&
+           config.repo && 
+           config.repo !== 'YOUR_REPO_NAME' &&
+           config.token && 
+           config.token !== 'YOUR_GITHUB_TOKEN' &&
+           config.token.length > 20; // Basic token length check
 }
 
 function showMessage(message, type = 'info') {
-    // Remove existing message
     const existingMsg = document.getElementById('statusMessage');
     if (existingMsg) {
         existingMsg.remove();
@@ -240,7 +278,6 @@ function showMessage(message, type = 'info') {
 
     document.body.appendChild(messageDiv);
 
-    // Auto remove after 4 seconds
     setTimeout(() => {
         messageDiv.style.opacity = '0';
         messageDiv.style.transition = 'opacity 0.5s';
@@ -290,7 +327,6 @@ function updateProduct(id, field, value) {
         const oldValue = product[field];
         product[field] = field === 'name' ? value : parseFloat(value) || 0;
         
-        // Only save if value actually changed
         if (oldValue !== product[field]) {
             updateProductCalculations(id);
             updateTotals();
@@ -299,7 +335,7 @@ function updateProduct(id, field, value) {
     }
 }
 
-// Calculation functions
+// Calculation functions (keep the same as before)
 function calculateCBM(length, width, height) {
     return (length * width * height) / 1000000;
 }
@@ -421,10 +457,31 @@ function renderProducts() {
     });
 }
 
-// Add this to check GitHub configuration on page load
+// Add configuration check on load
 document.addEventListener('DOMContentLoaded', function() {
     if (!isGitHubConfigured()) {
-        showMessage('⚠️ GitHub not configured - data will be saved locally only', 'warning');
+        showMessage('⚠️ GitHub not configured - data will be saved locally only. Check console for setup instructions.', 'warning');
+        console.log(`
+🚨 GITHUB SETUP REQUIRED 🚨
+
+To enable cloud saving, please update these values in dashboard.js:
+
+const GITHUB_CONFIG = {
+    username: 'your-actual-github-username',   // Your GitHub username
+    repo: 'your-actual-repo-name',             // Your repository name  
+    token: 'ghp_yourActualTokenHere',          // Your GitHub token
+    branch: 'main'
+};
+
+📝 How to get your token:
+1. Go to GitHub.com → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Name it "Shipping App", set to "No expiration"
+4. Check ✅ "repo" permission
+5. Copy the token (starts with ghp_)
+6. Paste it in the config above
+
+Your data will work locally until you set this up!
+        `);
     }
 });
-

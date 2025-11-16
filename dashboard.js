@@ -2,7 +2,7 @@
 const GITHUB_CONFIG = {
     username: 'kels-hub',      // Replace with your actual GitHub username
     repo: 'ardibee',                // Replace with your actual repository name
-    token: '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',            // Replace with your actual token
+    token: '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',            // Replace with your actual token
     branch: 'main'
 };
 
@@ -485,4 +485,5 @@ Your data will work locally until you set this up!
         `);
     }
 });
+
 

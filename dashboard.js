@@ -1,7 +1,7 @@
 // GitHub Configuration - UPDATE THESE!
 const GITHUB_USERNAME = 'kels-hub'; // Replace with your GitHub username
 const REPO_NAME = 'ardibee'; // Replace with your repository name
-const GITHUB_TOKEN = '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'; // Replace with your GitHub token
+const GITHUB_TOKEN = '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'; // Replace with your GitHub token
 const BRANCH = 'main'; // or 'master' depending on your repo
 
 const RAW_DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/data/products.json`;
@@ -427,3 +427,4 @@ document.addEventListener('DOMContentLoaded', function() {
         showMessage('⚠️ GitHub not configured - data will be saved locally only', 'warning');
     }
 });
+

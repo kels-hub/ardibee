@@ -3,17 +3,21 @@ if (localStorage.getItem('isLoggedIn') !== 'true') {
     window.location.href = 'index.html';
 }
 
-// Initialize
+let products = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     const currentUser = localStorage.getItem('currentUser');
     document.getElementById('userWelcome').textContent = `Welcome, ${currentUser}!`;
     
-    loadProducts();
-    updateTotals();
+    // Load data from URL or local storage
+    loadFromURL();
     
     // Event listeners
     document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('addProductBtn').addEventListener('click', addProduct);
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('importInput').addEventListener('change', importData);
+    document.getElementById('shareBtn').addEventListener('click', openShareModal);
     
     // Rate change listeners
     document.getElementById('cbmRate').addEventListener('input', updateAllCalculations);
@@ -21,15 +25,195 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('yuanRate').addEventListener('input', updateAllCalculations);
 });
 
-function logout() {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('isLoggedIn');
-    window.location.href = 'index.html';
+// URL Data Storage Functions
+function saveToURL() {
+    const data = {
+        products: products,
+        rates: {
+            cbm: document.getElementById('cbmRate').value,
+            dollar: document.getElementById('dollarRate').value,
+            yuan: document.getElementById('yuanRate').value
+        },
+        timestamp: new Date().toISOString()
+    };
+    
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(data));
+    const newURL = window.location.origin + window.location.pathname + '?data=' + compressed;
+    window.history.replaceState(null, '', newURL);
+    
+    // Also save to local storage as backup
+    localStorage.setItem('products', JSON.stringify(products));
+    localStorage.setItem('rates', JSON.stringify(data.rates));
 }
 
-let products = JSON.parse(localStorage.getItem('products')) || [];
+function loadFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataParam = urlParams.get('data');
+    
+    if (dataParam) {
+        try {
+            const decompressed = LZString.decompressFromEncodedURIComponent(dataParam);
+            const data = JSON.parse(decompressed);
+            
+            products = data.products || [];
+            document.getElementById('cbmRate').value = data.rates?.cbm || 247;
+            document.getElementById('dollarRate').value = data.rates?.dollar || 15;
+            document.getElementById('yuanRate').value = data.rates?.yuan || 0.575;
+            
+            renderProducts();
+            updateTotals();
+            console.log('Data loaded from URL');
+            return;
+        } catch (error) {
+            console.error('Error loading from URL:', error);
+        }
+    }
+    
+    // Fallback to local storage
+    loadFromLocalStorage();
+}
 
-function addProduct() {
+function loadFromLocalStorage() {
+    products = JSON.parse(localStorage.getItem('products')) || [];
+    const savedRates = JSON.parse(localStorage.getItem('rates'));
+    
+    if (savedRates) {
+        document.getElementById('cbmRate').value = savedRates.cbm || 247;
+        document.getElementById('dollarRate').value = savedRates.dollar || 15;
+        document.getElementById('yuanRate').value = savedRates.yuan || 0.575;
+    }
+    
+    renderProducts();
+    updateTotals();
+}
+
+// Share Modal Functions
+function openShareModal() {
+    saveToURL(); // Ensure URL is up to date
+    const currentURL = window.location.href;
+    
+    document.getElementById('shareUrl').value = currentURL;
+    document.getElementById('shareModal').style.display = 'flex';
+    
+    // Generate QR code
+    generateQRCode(currentURL);
+}
+
+function closeShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+}
+
+function copyShareUrl() {
+    const shareUrl = document.getElementById('shareUrl');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    // Show copied feedback
+    const copyBtn = document.querySelector('.copy-btn');
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = 'Copied!';
+    copyBtn.style.background = '#27ae60';
+    
+    setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.background = '#3498db';
+    }, 2000);
+}
+
+function generateQRCode(text) {
+    const qrcodeContainer = document.getElementById('qrcode');
+    qrcodeContainer.innerHTML = '';
+    
+    // Simple QR code generation using canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Simple QR-like pattern (for demo - in production use a proper QR library)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = 'black';
+    
+    // Create a simple pattern
+    for (let i = 0; i < size; i += 10) {
+        for (let j = 0; j < size; j += 10) {
+            if (Math.random() > 0.5) {
+                ctx.fillRect(i, j, 8, 8);
+            }
+        }
+    }
+    
+    qrcodeContainer.appendChild(canvas);
+}
+
+function shareViaWhatsApp() {
+    const url = encodeURIComponent(document.getElementById('shareUrl').value);
+    window.open(`https://wa.me/?text=${url}`, '_blank');
+}
+
+function shareViaEmail() {
+    const url = document.getElementById('shareUrl').value;
+    window.open(`mailto:?subject=Shipping Calculator Data&body=Here is my shipping data: ${url}`, '_blank');
+}
+
+function shareViaSMS() {
+    const url = document.getElementById('shareUrl').value;
+    window.open(`sms:?body=Shipping Calculator Data: ${url}`, '_blank');
+}
+
+// File Export/Import
+function exportData() {
+    const data = {
+        products: products,
+        rates: {
+            cbm: document.getElementById('cbmRate').value,
+            dollar: document.getElementById('dollarRate').value,
+            yuan: document.getElementById('yuanRate').value
+        },
+        exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shipping-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            products = data.products || [];
+            document.getElementById('cbmRate').value = data.rates?.cbm || 247;
+            document.getElementById('dollarRate').value = data.rates?.dollar || 15;
+            document.getElementById('yuanRate').value = data.rates?.yuan || 0.575;
+            
+            renderProducts();
+            updateTotals();
+            saveToURL();
+            
+            alert('Data imported successfully!');
+        } catch (error) {
+            alert('Error importing file. Please check the file format.');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Product Management
+async function addProduct() {
     const product = {
         id: Date.now(),
         name: '',
@@ -41,27 +225,28 @@ function addProduct() {
     };
     
     products.push(product);
-    saveProducts();
+    saveToURL();
     renderProducts();
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
     products = products.filter(p => p.id !== id);
-    saveProducts();
+    saveToURL();
     renderProducts();
     updateTotals();
 }
 
-function updateProduct(id, field, value) {
+async function updateProduct(id, field, value) {
     const product = products.find(p => p.id === id);
     if (product) {
         product[field] = field === 'name' ? value : parseFloat(value) || 0;
-        saveProducts();
+        saveToURL();
         updateProductCalculations(id);
         updateTotals();
     }
 }
 
+// Calculation Functions
 function calculateCBM(length, width, height) {
     return (length * width * height) / 1000000;
 }
@@ -86,7 +271,6 @@ function updateProductCalculations(id) {
     const productCostCedis = calculateProductCost(product.productCost, product.localShipping);
     const totalCost = productCostCedis + shippingCost;
     
-    // Update DOM
     const row = document.querySelector(`[data-id="${id}"]`);
     if (row) {
         row.querySelector('.cbm').textContent = cbm.toFixed(6);
@@ -100,6 +284,7 @@ function updateProductCalculations(id) {
 function updateAllCalculations() {
     products.forEach(product => updateProductCalculations(product.id));
     updateTotals();
+    saveToURL(); // Auto-save when rates change
 }
 
 function updateTotals() {
@@ -176,11 +361,16 @@ function renderProducts() {
     });
 }
 
-function saveProducts() {
-    localStorage.setItem('products', JSON.stringify(products));
+function logout() {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isLoggedIn');
+    window.location.href = 'index.html';
 }
 
-function loadProducts() {
-    products = JSON.parse(localStorage.getItem('products')) || [];
-    renderProducts();
-}
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('shareModal');
+    if (event.target === modal) {
+        closeShareModal();
+    }
+});
